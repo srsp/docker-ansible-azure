@@ -1,5 +1,5 @@
 ![build](https://github.com/srsp/docker-ansible-azure/actions/workflows/docker-image.yml/badge.svg)
-[![Docker Hub](https://img.shields.io/docker/v/srsp/ansible?label=Docker%20Hub&logo=docker&logoColor=white)](https://hub.docker.com/r/srsp/ansible-azure)
+[![Docker Hub](https://img.shields.io/docker/v/srsp/ansible-azure?label=Docker%20Hub&logo=docker&logoColor=white)](https://hub.docker.com/r/srsp/ansible-azure)
 
 # docker-ansible
 
