@@ -5,10 +5,10 @@
 
 Docker image with
 
+* azure-cli
 * ansible
 * ansible-galaxy
 * ansible-lint
-* azure-cli
 * rsync
 * openssh-client
 * git
