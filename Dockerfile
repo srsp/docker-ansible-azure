@@ -1,4 +1,4 @@
-FROM srsp/ansible:2.14.11.1 as build
+FROM srsp/ansible:2.14.11 as build
 
 # Install azure cli
 RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash
