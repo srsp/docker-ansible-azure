@@ -9,9 +9,11 @@ Docker image with
 * ansible
 * ansible-galaxy
 * ansible-lint
-* rsync
-* openssh-client
+* curl
 * git
+* openssh-client
+* python3-hcloud
+* rsync
 
 ## Usage
 ```bash
@@ -19,7 +21,7 @@ docker pull srsp/ansible-azure
 ```
 
 ## Developers
-This image uses `srsp/ansible` as base image and then just installs the latest `azure-cli`
+This image uses `srsp/ansible` as base image and installs the latest `azure-cli`
 package. I build new releases on a regular basis and publish them to docker hub. 
 
 ### Build 
