@@ -8,7 +8,7 @@ RUN apt-get clean
 RUN	find /usr/lib/ -name '__pycache__' -print0 | xargs -0 -n1 rm -rf \
 	&& find /usr/lib/ -name '*.pyc' -print0 | xargs -0 -n1 rm -rf
 
-FROM srsp/ansible:2.14.13
+FROM srsp/ansible:pr-6
 
 COPY --from=build /usr/bin/ /usr/bin/
 COPY --from=build /opt/az/ /opt/az/
