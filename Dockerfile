@@ -1,4 +1,4 @@
-FROM srsp/ansible:2.16.8 as build
+FROM srsp/ansible:2.17.5 as build
 
 # Install azure cli
 RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash
@@ -8,7 +8,7 @@ RUN apt-get clean
 RUN	find /usr/lib/ -name '__pycache__' -print0 | xargs -0 -n1 rm -rf \
 	&& find /usr/lib/ -name '*.pyc' -print0 | xargs -0 -n1 rm -rf
 
-FROM srsp/ansible:2.16.8
+FROM srsp/ansible:2.17.5
 
 COPY --from=build /usr/bin/ /usr/bin/
 COPY --from=build /opt/az/ /opt/az/
