@@ -1,4 +1,4 @@
-FROM srsp/ansible:2.16.8 as build
+FROM srsp/ansible:2.17.7 as build
 
 RUN apt-get update && \
     apt-get install -y apt-transport-https ca-certificates wget gnupg lsb-release && \
@@ -13,7 +13,7 @@ RUN apt-get update && \
     find /usr/lib/ -name '__pycache__' -print0 | xargs -0 -n1 rm -rf && \
     find /usr/lib/ -name '*.pyc' -print0 | xargs -0 -n1 rm -rf
 
-FROM srsp/ansible:2.16.8
+FROM srsp/ansible:2.17.7
 
 COPY --from=build /usr/bin/ /usr/bin/
 COPY --from=build /opt/az/ /opt/az/
