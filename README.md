@@ -1,7 +1,7 @@
 ![build](https://github.com/srsp/docker-ansible-azure/actions/workflows/docker-publish.yml/badge.svg)
 [![Docker Hub](https://img.shields.io/docker/v/srsp/ansible-azure?label=Docker%20Hub&logo=docker&logoColor=white)](https://hub.docker.com/r/srsp/ansible-azure)
 
-# docker-ansible
+# docker-ansible-azure
 
 Docker image with
 
