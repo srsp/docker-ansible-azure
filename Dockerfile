@@ -1,4 +1,4 @@
-FROM srsp/ansible:2.18.10 AS build
+FROM srsp/ansible:2.19.4 AS build
 
 # Install azure cli
 RUN apt-get update && \
@@ -14,7 +14,7 @@ RUN apt-get update && \
     find /usr/lib/ -name '__pycache__' -print0 | xargs -0 -n1 rm -rf && \
     find /usr/lib/ -name '*.pyc' -print0 | xargs -0 -n1 rm -rf
 
-FROM srsp/ansible:2.18.10
+FROM srsp/ansible:2.19.4
 
 COPY --from=build /usr/bin/ /usr/bin/
 COPY --from=build /opt/az/ /opt/az/
