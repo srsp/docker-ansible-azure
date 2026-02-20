@@ -1,0 +1,138 @@
+name: Dependabot Ansible Auto-merge
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+
+jobs:
+  build-and-merge:
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && startsWith(github.head_ref, 'dependabot/docker/srsp/ansible-')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - name: Validate branch format
+        id: branch
+        run: |
+          head_ref="${{ github.head_ref }}"
+          if [[ ! "$head_ref" =~ ^dependabot/docker/srsp/ansible-([0-9]+)\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Branch name does not match expected format. Skipping."
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "valid=true" >> "$GITHUB_OUTPUT"
+      - name: Build image for version extraction
+        if: steps.branch.outputs.valid == 'true'
+        run: |
+          docker build -t local/ansible-azure:dependabot .
+      - name: Extract Ansible and Azure CLI versions
+        if: steps.branch.outputs.valid == 'true'
+        id: versions
+        run: |
+          ansible_version=$(docker run --rm local/ansible-azure:dependabot ansible --version | python3 - <<'PY'
+          import re
+          import sys
+          data = sys.stdin.read()
+          match = re.search(r'([0-9]+\.[0-9]+\.[0-9]+)', data)
+          print(match.group(1) if match else "")
+          PY
+          )
+
+          az_version=$(docker run --rm local/ansible-azure:dependabot az version --output json | python3 - <<'PY'
+          import json
+          import sys
+          data = json.load(sys.stdin)
+          print(data.get("azure-cli", ""))
+          PY
+          )
+
+          if [ -z "$ansible_version" ] || [ -z "$az_version" ]; then
+            echo "Failed to extract versions."
+            exit 1
+          fi
+
+          echo "ansible_version=$ansible_version" >> "$GITHUB_OUTPUT"
+          echo "az_version=$az_version" >> "$GITHUB_OUTPUT"
+      - name: Check for existing tag
+        if: steps.branch.outputs.valid == 'true'
+        id: tag
+        run: |
+          ansible_version="${{ steps.versions.outputs.ansible_version }}"
+          git fetch --tags --force
+          if git tag -l "v${ansible_version}" | grep -q .; then
+            echo "tag_exists=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "tag_exists=false" >> "$GITHUB_OUTPUT"
+      - name: Enable auto-merge
+        if: steps.branch.outputs.valid == 'true' && steps.tag.outputs.tag_exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge "${{ github.event.pull_request.number }}" --merge --auto --delete-branch
+      - name: Wait for merge
+        if: steps.branch.outputs.valid == 'true' && steps.tag.outputs.tag_exists == 'false'
+        id: merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pr_number="${{ github.event.pull_request.number }}"
+          for _ in {1..60}; do
+            merged_at=$(gh api "repos/${{ github.repository }}/pulls/${pr_number}" --jq '.merged_at')
+            merge_sha=$(gh api "repos/${{ github.repository }}/pulls/${pr_number}" --jq '.merge_commit_sha')
+            if [ "$merged_at" != "null" ] && [ -n "$merge_sha" ]; then
+              echo "merge_sha=$merge_sha" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Timed out waiting for merge."
+          exit 1
+      - name: Tag merge commit
+        if: steps.branch.outputs.valid == 'true' && steps.tag.outputs.tag_exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ansible_version="${{ steps.versions.outputs.ansible_version }}"
+          git fetch origin main --tags --force
+          if git tag -l "v${ansible_version}" | grep -q .; then
+            echo "Tag v${ansible_version} already exists. Skipping tag creation."
+            exit 0
+          fi
+
+          git tag "v${ansible_version}" "${{ steps.merge.outputs.merge_sha }}"
+          git push origin "v${ansible_version}"
+      - name: Trigger docker-publish via repository_dispatch
+        if: steps.branch.outputs.valid == 'true' && steps.tag.outputs.tag_exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ansible_version="${{ steps.versions.outputs.ansible_version }}"
+          gh api "repos/${{ github.repository }}/dispatches" \
+            -f event_type="tag-publish" \
+            -f client_payload="{\"tag\":\"v${ansible_version}\"}"
+      - name: Create release
+        if: steps.branch.outputs.valid == 'true' && steps.tag.outputs.tag_exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ansible_version="${{ steps.versions.outputs.ansible_version }}"
+          az_version="${{ steps.versions.outputs.az_version }}"
+          if gh release view "v${ansible_version}" >/dev/null 2>&1; then
+            echo "Release v${ansible_version} already exists. Skipping."
+            exit 0
+          fi
+
+          gh release create "v${ansible_version}" \
+            --title "v${ansible_version}" \
+            --notes "- Update Ansible to ${ansible_version}\n- Update az cli to ${az_version}"
