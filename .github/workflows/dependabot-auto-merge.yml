@@ -39,20 +39,26 @@ jobs:
         if: steps.branch.outputs.valid == 'true'
         id: versions
         run: |
-          ansible_version=$(docker run --rm local/ansible-azure:dependabot ansible --version | python3 - <<'PY'
+          ansible_out=$(docker run --rm local/ansible-azure:dependabot ansible --version 2>/dev/null || true)
+          ansible_version=$(ANSIBLE_OUT="$ansible_out" python3 - <<'PY'
           import re
-          import sys
-          data = sys.stdin.read()
+          import os
+          data = os.environ.get("ANSIBLE_OUT", "")
           match = re.search(r'([0-9]+\.[0-9]+\.[0-9]+)', data)
           print(match.group(1) if match else "")
           PY
           )
 
-          az_version=$(docker run --rm local/ansible-azure:dependabot az version --output json | python3 - <<'PY'
+          az_out=$(docker run --rm local/ansible-azure:dependabot az version --output json 2>/dev/null || true)
+          az_version=$(AZ_OUT="$az_out" python3 - <<'PY'
           import json
-          import sys
-          data = json.load(sys.stdin)
-          print(data.get("azure-cli", ""))
+          import os
+          data = os.environ.get("AZ_OUT", "")
+          if not data.strip():
+              print("")
+          else:
+              payload = json.loads(data)
+              print(payload.get("azure-cli", ""))
           PY
           )
 
