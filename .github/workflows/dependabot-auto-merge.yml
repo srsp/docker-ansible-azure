@@ -85,7 +85,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh pr merge "${{ github.event.pull_request.number }}" --merge --auto --delete-branch
+          gh pr merge "${{ github.event.pull_request.number }}" --rebase --auto --delete-branch
       - name: Wait for merge
         if: steps.branch.outputs.valid == 'true' && steps.tag.outputs.tag_exists == 'false'
         id: merge
