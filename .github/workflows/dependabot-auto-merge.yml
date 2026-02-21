@@ -126,7 +126,7 @@ jobs:
           ansible_version="${{ steps.versions.outputs.ansible_version }}"
           gh api "repos/${{ github.repository }}/dispatches" \
             -f event_type="tag-publish" \
-            -f client_payload="{\"tag\":\"v${ansible_version}\"}"
+            -f client_payload[tag]="v${ansible_version}"
       - name: Create release
         if: steps.branch.outputs.valid == 'true' && steps.tag.outputs.tag_exists == 'false'
         env:
