@@ -33,6 +33,27 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.client_payload.tag || github.ref }}
       -
+        name: Resolve publish context
+        id: context
+        run: |
+          is_version_tag=false
+          version_tag=""
+
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            version_tag="${{ github.event.client_payload.tag }}"
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            version_tag="${{ github.ref_name }}"
+          fi
+
+          if [[ "$version_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            is_version_tag=true
+          else
+            version_tag=""
+          fi
+
+          echo "is_version_tag=$is_version_tag" >> "$GITHUB_OUTPUT"
+          echo "version_tag=$version_tag" >> "$GITHUB_OUTPUT"
+      -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       -
@@ -56,10 +77,10 @@ jobs:
         with:
           images: ${{ env.REGISTRY_USER }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=branch,enable=${{ steps.context.outputs.is_version_tag != 'true' && github.event_name != 'pull_request' }}
+            type=ref,event=pr,enable=${{ github.event_name == 'pull_request' }}
+            type=semver,pattern={{version}},value=${{ steps.context.outputs.version_tag }},enable=${{ steps.context.outputs.is_version_tag == 'true' }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ steps.context.outputs.version_tag }},enable=${{ steps.context.outputs.is_version_tag == 'true' }}
 
       # Build and push Docker image with Buildx
       # https://github.com/docker/build-push-action
