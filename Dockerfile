@@ -8,8 +8,9 @@ RUN apt-get update && \
     chmod go+r /etc/apt/keyrings/microsoft.gpg && \
     AZ_DIST=$(lsb_release -cs) && \
     echo "Types: deb\nURIs: https://packages.microsoft.com/repos/azure-cli/\nSuites: ${AZ_DIST}\nComponents: main\nArchitectures: $(dpkg --print-architecture)\nSigned-by: /etc/apt/keyrings/microsoft.gpg" | tee /etc/apt/sources.list.d/azure-cli.sources && \
+    curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | bash && \
     apt-get update && \
-    apt-get install -y azure-cli && \
+    apt-get install -y azure-cli infisical && \
     apt-get clean && \
     find /usr/lib/ -name '__pycache__' -print0 | xargs -0 -n1 rm -rf && \
     find /usr/lib/ -name '*.pyc' -print0 | xargs -0 -n1 rm -rf

@@ -11,6 +11,7 @@ Docker image with
 * ansible-lint
 * curl
 * git
+* infisical cli
 * openssh-client
 * python3-hcloud
 * rsync

@@ -35,7 +35,7 @@ jobs:
         if: steps.branch.outputs.valid == 'true'
         run: |
           docker build -t local/ansible-azure:dependabot .
-      - name: Extract Ansible and Azure CLI versions
+      - name: Extract Ansible, Azure CLI and Infisical versions
         if: steps.branch.outputs.valid == 'true'
         id: versions
         run: |
@@ -67,8 +67,24 @@ jobs:
             exit 1
           fi
 
+          infisical_out=$(docker run --rm local/ansible-azure:dependabot infisical --version 2>/dev/null || true)
+          infisical_version=$(INFISICAL_OUT="$infisical_out" python3 - <<'PY'
+          import re
+          import os
+          data = os.environ.get("INFISICAL_OUT", "")
+          match = re.search(r'([0-9]+\.[0-9]+\.[0-9]+)', data)
+          print(match.group(1) if match else "")
+          PY
+          )
+
+          if [ -z "$infisical_version" ]; then
+            echo "Failed to extract Infisical version."
+            exit 1
+          fi
+
           echo "ansible_version=$ansible_version" >> "$GITHUB_OUTPUT"
           echo "az_version=$az_version" >> "$GITHUB_OUTPUT"
+          echo "infisical_version=$infisical_version" >> "$GITHUB_OUTPUT"
       - name: Check for existing tag
         if: steps.branch.outputs.valid == 'true'
         id: tag
@@ -134,9 +150,11 @@ jobs:
         run: |
           ansible_version="${{ steps.versions.outputs.ansible_version }}"
           az_version="${{ steps.versions.outputs.az_version }}"
-          release_notes=$(printf '%s\n%s' \
+          infisical_version="${{ steps.versions.outputs.infisical_version }}"
+          release_notes=$(printf '%s\n%s\n%s' \
             "- Update Ansible to ${ansible_version}" \
-            "- Update az cli to ${az_version}")
+            "- Update az cli to ${az_version}" \
+            "- Update infisical cli to ${infisical_version}")
           if gh release view "v${ansible_version}" >/dev/null 2>&1; then
             echo "Release v${ansible_version} already exists. Skipping."
             exit 0
