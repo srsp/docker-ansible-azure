@@ -11,7 +11,7 @@ on:
 jobs:
   build-and-merge:
     if: github.event.pull_request.user.login == 'dependabot[bot]' && startsWith(github.head_ref, 'dependabot/docker/srsp/ansible-')
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, mr-amd64]
     permissions:
       contents: write
       pull-requests: write
