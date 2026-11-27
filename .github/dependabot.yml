@@ -9,3 +9,6 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "daily"
+    # The only image here is srsp/ansible, which is ours; take its releases on the day they're published.
+    cooldown:
+      default-days: 0
